@@ -1,4 +1,4 @@
-import pygame
+import pygame # type: ignore
 import sys
 import random
 import json
@@ -17,7 +17,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Snake Game")
 
 clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 30)
+font = pygame.font.SysFont(None, 40)
 
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
@@ -131,15 +131,11 @@ def show_game_over(score):
                     pygame.quit()
                     sys.exit()
 
-def save_score(score):
-    scores= []
+def save_score(name, score):
+    scores = load_scores()
 
-    if os.path.exists(SCORE_FILE):
-        with open(SCORE_FILE, "r") as f:
-            scores = json.load(f)
-    
-    scores.append(score)
-    scores = sorted(scores, reverse=True)[:10]
+    scores.append({"name": name, "score": score})
+    scores = sorted(scores, key=lambda x: x["score"], reverse=True)[:10]
 
     with open(SCORE_FILE, "w") as f:
         json.dump(scores, f)
@@ -150,7 +146,36 @@ def load_scores():
             return json.load(f)
     return []
 
-def show_leaderboard():
+def get_player_name():
+    name = ""
+    active = True
+
+    while active:
+        screen.fill(BLACK)
+
+        prompt = font.render("Enter Your Name:", True, WHITE)
+        text = font.render(name, True, GREEN)
+
+        screen.blit(prompt, (WIDTH // 3, HEIGHT // 3))
+        screen.blit(text, (WIDTH // 3, HEIGHT // 2))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and name:
+                    return name
+                elif event.key == pygame.K_BACKSPACE:
+                    name = name[:-1]
+                else:
+                    if len(name) < 10:
+                        name += event.unicode
+
+def show_leaderboard(current_name=None, current_score=None):
     scores = load_scores()
 
     while True:
@@ -159,9 +184,19 @@ def show_leaderboard():
         title = font.render("Leaderboard", True, WHITE)
         screen.blit(title, (WIDTH // 3, 30))
 
-        for i, s in enumerate(scores):
-            text = font.render(f"{i+1}. {s}", True, WHITE)
-            screen.blit(text, (WIDTH // 3, 80 + i * 30))
+        for i, entry in enumerate(scores):
+            color = WHITE
+
+            if (entry["name"] == current_name and
+                entry["score"] == current_score):
+                color = GREEN  # highlight
+
+            text = font.render(
+                f"{i+1}. {entry['name']} - {entry['score']}",
+                True,
+                color
+            )
+            screen.blit(text, (WIDTH // 4, 80 + i * 30))
 
         hint = font.render("Press ENTER to Play", True, WHITE)
         screen.blit(hint, (WIDTH // 4, HEIGHT - 50))
@@ -179,7 +214,8 @@ def show_leaderboard():
 
 # Main game loop
 while True:
+    player_name = get_player_name()
     final_score = game_loop()
-    save_score(final_score)
+    save_score(player_name, final_score)
     show_game_over(final_score)
-    show_leaderboard()
+    show_leaderboard(player_name, final_score)
