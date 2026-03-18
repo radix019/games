@@ -1,10 +1,15 @@
-import pygame
+import pygame # type: ignore
 import sys
 import random
+import json
+import os
+
+SCORE_FILE = "scores.json"
 
 pygame.init()
 
-WIDTH, HEIGHT = 600, 400
+WIDTH, HEIGHT = 1000, 700
+BLOCK_SIZE = 20
 CELL = 20
 FPS = 10
 
@@ -12,12 +17,15 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Snake Game")
 
 clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 30)
+font = pygame.font.SysFont(None, 40)
 
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
+GREY = (105, 105, 105)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
+GRID_COLOR = GREY
+BACKGROUND_COLOR = BLACK
 
 def reset_game():
     snake = [(100, 100)]
@@ -29,10 +37,18 @@ def reset_game():
     score = 0
     return snake, direction, food, score
 
+def draw_grid():
+    # Draw vertical lines
+    for x in range(0, WIDTH, BLOCK_SIZE):
+        pygame.draw.line(screen, GRID_COLOR, (x, 0), (x, HEIGHT), 1)
+    # Draw horizontal lines
+    for y in range(0, HEIGHT, BLOCK_SIZE):
+        pygame.draw.line(screen, GRID_COLOR, (0, y), (WIDTH, y), 1)
+
 
 def draw(snake, food, score):
     screen.fill(BLACK)
-
+    draw_grid()
     # Snake
     for segment in snake:
         pygame.draw.rect(screen, GREEN, (*segment, CELL, CELL))
@@ -115,8 +131,90 @@ def show_game_over(score):
                     pygame.quit()
                     sys.exit()
 
+def save_score(name, score):
+    scores = load_scores()
 
-# Main game loop
+    scores.append({"name": name, "score": score})
+    scores = sorted(scores,key=lambda x: x.get("score", 0),reverse=True)[:10]
+    
+    with open(SCORE_FILE, "w") as f:
+        json.dump(scores, f)
+
+def load_scores():
+    if os.path.exists(SCORE_FILE):
+        with open(SCORE_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def get_player_name():
+    name = ""
+    active = True
+
+    while active:
+        screen.fill(BLACK)
+
+        prompt = font.render("Enter Your Name:", True, WHITE)
+        text = font.render(name, True, GREEN)
+
+        screen.blit(prompt, (WIDTH // 3, HEIGHT // 3))
+        screen.blit(text, (WIDTH // 3, HEIGHT // 2))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN and name:
+                    return name
+                elif event.key == pygame.K_BACKSPACE:
+                    name = name[:-1]
+                else:
+                    if len(name) < 10:
+                        name += event.unicode
+
+def show_leaderboard(current_name=None, current_score=None):
+    scores = load_scores()
+
+    while True:
+        screen.fill(BLACK)
+
+        title = font.render("Leaderboard", True, WHITE)
+        screen.blit(title, (WIDTH // 3, 30))
+
+        for i, entry in enumerate(scores):
+            color = WHITE
+
+            if (entry["name"] == current_name and
+                entry["score"] == current_score):
+                color = GREEN
+
+            text = font.render(
+                f"{i+1}. {entry['name']} : {entry['score']}",
+                True,
+                color
+            )
+            screen.blit(text, (WIDTH // 4, 80 + i * 30))
+
+        hint = font.render("Press ENTER to Play", True, WHITE)
+        screen.blit(hint, (WIDTH // 4, HEIGHT - 50))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return
+
 while True:
+    player_name = get_player_name()
     final_score = game_loop()
-    show_game_over(final_score)
+    save_score(player_name, final_score)
+    # show_game_over(final_score)
+    show_leaderboard(player_name, final_score)
