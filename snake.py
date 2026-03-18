@@ -135,8 +135,8 @@ def save_score(name, score):
     scores = load_scores()
 
     scores.append({"name": name, "score": score})
-    scores = sorted(scores, key=lambda x: x["score"], reverse=True)[:10]
-
+    scores = sorted(scores,key=lambda x: x.get("score", 0),reverse=True)[:10]
+    
     with open(SCORE_FILE, "w") as f:
         json.dump(scores, f)
 
@@ -189,10 +189,10 @@ def show_leaderboard(current_name=None, current_score=None):
 
             if (entry["name"] == current_name and
                 entry["score"] == current_score):
-                color = GREEN  # highlight
+                color = GREEN
 
             text = font.render(
-                f"{i+1}. {entry['name']} - {entry['score']}",
+                f"{i+1}. {entry['name']} : {entry['score']}",
                 True,
                 color
             )
@@ -212,10 +212,9 @@ def show_leaderboard(current_name=None, current_score=None):
                 if event.key == pygame.K_RETURN:
                     return
 
-# Main game loop
 while True:
     player_name = get_player_name()
     final_score = game_loop()
     save_score(player_name, final_score)
-    show_game_over(final_score)
+    # show_game_over(final_score)
     show_leaderboard(player_name, final_score)
