@@ -4,7 +4,8 @@ import random
 
 pygame.init()
 
-WIDTH, HEIGHT = 600, 400
+WIDTH, HEIGHT = 1000, 700
+BLOCK_SIZE = 20
 CELL = 20
 FPS = 10
 
@@ -16,8 +17,11 @@ font = pygame.font.SysFont(None, 30)
 
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
+GREY = (105, 105, 105)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
+GRID_COLOR = GREY
+BACKGROUND_COLOR = BLACK
 
 def reset_game():
     snake = [(100, 100)]
@@ -29,10 +33,18 @@ def reset_game():
     score = 0
     return snake, direction, food, score
 
+def draw_grid():
+    # Draw vertical lines
+    for x in range(0, WIDTH, BLOCK_SIZE):
+        pygame.draw.line(screen, GRID_COLOR, (x, 0), (x, HEIGHT), 1)
+    # Draw horizontal lines
+    for y in range(0, HEIGHT, BLOCK_SIZE):
+        pygame.draw.line(screen, GRID_COLOR, (0, y), (WIDTH, y), 1)
+
 
 def draw(snake, food, score):
     screen.fill(BLACK)
-
+    draw_grid()
     # Snake
     for segment in snake:
         pygame.draw.rect(screen, GREEN, (*segment, CELL, CELL))
