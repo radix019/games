@@ -1,6 +1,10 @@
 import pygame
 import sys
 import random
+import json
+import os
+
+SCORE_FILE = "scores.json"
 
 pygame.init()
 
@@ -127,8 +131,55 @@ def show_game_over(score):
                     pygame.quit()
                     sys.exit()
 
+def save_score(score):
+    scores= []
+
+    if os.path.exists(SCORE_FILE):
+        with open(SCORE_FILE, "r") as f:
+            scores = json.load(f)
+    
+    scores.append(score)
+    scores = sorted(scores, reverse=True)[:10]
+
+    with open(SCORE_FILE, "w") as f:
+        json.dump(scores, f)
+
+def load_scores():
+    if os.path.exists(SCORE_FILE):
+        with open(SCORE_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def show_leaderboard():
+    scores = load_scores()
+
+    while True:
+        screen.fill(BLACK)
+
+        title = font.render("Leaderboard", True, WHITE)
+        screen.blit(title, (WIDTH // 3, 30))
+
+        for i, s in enumerate(scores):
+            text = font.render(f"{i+1}. {s}", True, WHITE)
+            screen.blit(text, (WIDTH // 3, 80 + i * 30))
+
+        hint = font.render("Press ENTER to Play", True, WHITE)
+        screen.blit(hint, (WIDTH // 4, HEIGHT - 50))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return
 
 # Main game loop
 while True:
     final_score = game_loop()
+    save_score(final_score)
     show_game_over(final_score)
+    show_leaderboard()
